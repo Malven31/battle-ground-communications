@@ -8,6 +8,8 @@ Made for **World of Warcraft: Forever**.
 
 ![BGComs' icon: a walkie-talkie in front of crossed blue and red flags](curseforge/logo.png)
 
+![BGComs in the game: a middle-click on the Blacksmith (BS), a drag three rings out towards SPOTTED, and "3 spotted BS" sent](curseforge/gallery/bgcoms_1.gif)
+
 - [Features](FEATURES.md): every call, option and command, explained.
 - [Changelog](CHANGELOG.md)
 

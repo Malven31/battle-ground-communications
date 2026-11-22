@@ -7,6 +7,8 @@
 
 Made for **World of Warcraft: Forever**.
 
+![BGComs in the game: a middle-click on the Blacksmith (BS), a drag three rings out towards SPOTTED, and "3 spotted BS" sent](https://raw.githubusercontent.com/Malven31/battle-ground-communications/main/curseforge/gallery/bgcoms_1.gif)
+
 ## How it works
 
 1. Open the battlefield map (**Shift-M**). BGComs opens it for you when you enter a battleground.

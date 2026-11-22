@@ -14,7 +14,7 @@ Everything the CurseForge project and file upload ask for, ready to paste.
 2. **Repository:** `github.com/Malven31/battle-ground-communications`.
 3. **Visibility:** the Source and Issues links below, and images loaded from the repository, need it to be public.
 4. **Logo:** [logo.png](logo.png) (512×512, the addon's own). The in-game icon `BGComs/media/icon.tga` (64×64) is the same picture. `scripts/make-icon.ps1` draws both.
-5. **Screenshots:** see [gallery/README.md](gallery/README.md). Four drawn illustrations are ready; real captures can replace them.
+5. **Screenshots:** see [gallery/README.md](gallery/README.md). One in-game capture (`bgcoms_1.gif`, also shown in the description) and four drawn illustrations are ready; more real captures can replace the drawings.
 
 ## Moderation rules to keep in mind
 

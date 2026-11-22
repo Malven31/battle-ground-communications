@@ -6,6 +6,14 @@ Images for the CurseForge gallery go in this folder.
 
 To show one in the description or the README, commit it here and load it in the description from `https://raw.githubusercontent.com/Malven31/battle-ground-communications/main/curseforge/gallery/<file>` (the README uses the relative path). That needs the repository to be public.
 
+## Captures in this folder
+
+| File | What it shows | Title | Description |
+|---|---|---|---|
+| `bgcoms_1.gif` | In the game, Arathi Basin's battlefield map: a middle-click on BS opens the wheel, a drag three rings out towards SPOTTED (x3), the release sends "3 spotted BS" (367×253, 60 frames, 4.2 s, 3.2 MB) | One gesture | Middle-click a base, drag towards a call: further means more enemies. Release, and it is in battleground chat. |
+
+`description.md` and the repository's README show it, loaded from this folder. Checked frame by frame (2026-11-22): only the map, the wheel, the game's base tooltip and the callout. No chat window, no player frame, no readable name.
+
 ## Illustrations in this folder
 
 Drawn by `scripts/make-gallery.ps1` (1280×720) on the real Arathi Basin map art, with the addon's own layout: the same directions, count rings, place codes and messages. They are illustrations, not game captures: in the game, the wheel uses Blizzard's ping art. No character names (the sender is "You"). Replace them with real screenshots when there are some.
