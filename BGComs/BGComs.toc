@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: BGComs - Battle Ground Communications
 ## Author: Malven31
-## Version: 0.2.0
+## Version: 1.0.0
 ## Notes: Battleground callouts from the battlefield map (Shift-M): middle-click near a base, drag to choose the call and the count, release to send it in battleground chat. /bgc
 ## SavedVariables: BGComsDB
 ## IconTexture: Interface\AddOns\BGComs\media\icon
