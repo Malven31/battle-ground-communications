@@ -6,6 +6,7 @@
 ## SavedVariables: BGComsDB
 ## IconTexture: Interface\AddOns\BGComs\media\icon
 ## AddonCompartmentFunc: BGComs_OnAddonCompartmentClick
+## X-Curse-Project-ID: 1823879
 ## X-Credits: By Malven31, made with Claude (Anthropic).
 
 Core.lua

@@ -45,11 +45,11 @@ If the description editor has no Markdown mode, open `description.md` in a Markd
 
 ## Project ID
 
-Once the project exists, its ID is in the "About Project" box of the project page.
+The project ID is **1823879** (project created by the user on 2026-11-22; the ID is in the "About Project" box of the project page).
 
-- Add it to `BGComs/BGComs.toc` as `## X-Curse-Project-ID: <id>`. Without it, the workflow refuses tags and `scripts/release.ps1` refuses to tag.
-- Add the download count at the top of `description.md` and `README.md`: `https://img.shields.io/curseforge/dt/<id>?logo=curseforge&label=downloads`. Until CurseForge's public API lists the project, the badge may read "downloads: not found". The fallback badge service is `https://cf.way2muchnoise.eu/full_<id>_downloads.svg`.
-- Links to the project can use `https://www.curseforge.com/projects/<id>`, which leads to the project page whatever its URL slug.
+- It is in `BGComs/BGComs.toc` as `## X-Curse-Project-ID: 1823879`. Without it, the workflow refuses tags and `scripts/release.ps1` refuses to tag.
+- The top of `description.md` and `README.md` shows the download count, `https://img.shields.io/curseforge/dt/1823879?logo=curseforge&label=downloads`. Until CurseForge's public API lists the project, the badge may read "downloads: not found". The fallback badge service is `https://cf.way2muchnoise.eu/full_1823879_downloads.svg`.
+- Links to the project use `https://www.curseforge.com/projects/1823879`, which leads to the project page whatever its URL slug.
 
 ## Automatic packaging (set up once)
 

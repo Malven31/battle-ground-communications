@@ -1,5 +1,7 @@
 # BGComs - Battle Ground Communications
 
+[![CurseForge downloads](https://img.shields.io/curseforge/dt/1823879?logo=curseforge&label=downloads)](https://www.curseforge.com/projects/1823879)
+
 Battleground callouts in one gesture. Middle-click a base on the battlefield map, drag towards a call, release: "3 inc GM" goes out in battleground chat. Everyone reads it, with or without the addon.
 
 Made for **World of Warcraft: Forever**.
@@ -11,7 +13,7 @@ Made for **World of Warcraft: Forever**.
 
 ## Install
 
-Install it from CurseForge (Forever flavor), or by hand:
+Install it from [CurseForge](https://www.curseforge.com/projects/1823879) (Forever flavor), or by hand:
 
 1. Copy the `BGComs` folder into `World of Warcraft\_forever_\Interface\AddOns`.
 2. Restart the game.

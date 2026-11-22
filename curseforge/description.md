@@ -1,6 +1,7 @@
 # BGComs - Battle Ground Communications
 
-<!-- Download badge: add it once the project exists (see PROJECT.md, "Project ID"). -->
+<!-- Download badge for CurseForge project 1823879, served by shields.io. -->
+![Downloads](https://img.shields.io/curseforge/dt/1823879?logo=curseforge&label=downloads)
 
 **Call incomings in one gesture.** Nobody types "3 inc farm" in the middle of a fight. With BGComs you don't type either: middle-click a base on the battlefield map, drag towards a call, release. The callout goes out in battleground chat, and your whole team reads it, with or without the addon.
 
