@@ -193,7 +193,8 @@ ns.PROFILES = {
 			{ code = "cove", match = { "cove", "crique", "wreck" }, x = 0.400, y = 0.620 },
 			{ code = "ruins", match = { "ruin" }, x = 0.430, y = 0.355 },
 			{ code = "camp", match = { "camp" }, x = 0.570, y = 0.700 },
-			{ code = "mid", match = { "flag", "drapeau" }, x = 0.510, y = 0.500 },
+			-- The map calls the flag's point "Bannière de Sombrelance" on French clients.
+			{ code = "flag", match = { "banner", "banni", "flag", "drapeau" }, x = 0.510, y = 0.500 },
 		},
 	},
 	generic = {

@@ -19,7 +19,7 @@ The message goes out in battleground chat as plain text, sent as you, so everyon
 | Arathi Basin | `ST`, `GM`, `BS`, `LM`, `Farm` | The map's own points, or built-in positions |
 | Warsong Gulch | `our base`, `our ramp`, `our tun`, `our GY`, `mid`, and the same with `their` | Built-in positions. "our" and "their" follow your faction |
 | Alterac Valley | `DBN`, `DBS`, `IWB`, `SHB`, `IBT`, `TP`, `EFW`, `WFW`, the graveyards, the mines... | The map's own points. Points without a code keep their own name |
-| Darkspear Islands | `tower`, `cove`, `ruins`, `camp`, `mid` | The map's own points, or built-in positions |
+| Darkspear Islands | `tower`, `cove`, `ruins`, `camp`, `flag` (the banner in the middle) | The map's own points, or built-in positions |
 | Any other battleground | Its map points | Under their own names |
 
 The codes are drawn on the battlefield map, above each place (`/bgc nodes` hides them). `/bgc place CODE` moves a place, or adds one of your own, with your next click on the map (out of combat). `/bgc forget CODE` undoes it. Places are kept per map.
