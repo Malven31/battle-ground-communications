@@ -4,9 +4,10 @@
 -- The wheel uses ns.Classify, the same rules as the secure snippet, so what it highlights is what
 -- the release sends.
 --
--- Look: Blizzard's own radial wheel and ping art (Blizzard_RadialWheel, Blizzard_PingUI), drawn on
--- our own textures. Forever loads that art (its ping key binding exists), but which atlases
--- exist isn't known, so each one is checked and falls back (ns.art, in /bgc debug).
+-- Look: BGComs' own textures in media/, drawn by scripts/make-media.ps1 with the same code as the
+-- CurseForge gallery pictures (scripts/wheel-art.ps1): a dark disc with its rim and six dividers, a
+-- gold glow turned onto the selected wedge, and an icon per call. The count rings, the selected
+-- wedge's gold rim and the pointer are soft lines.
 -- Cost: nothing runs while the wheel is closed; while open, work is done only when the cursor
 -- moves, and textures and text change only when the selection changes.
 
@@ -16,37 +17,15 @@ local G = ns.GEOMETRY
 local DEG = 180 / math.pi
 local FONT = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local OUTER = G.dead + G.band * G.maxCount -- edge of the counted bands (132)
-local DISC = 2 * (OUTER + 12) -- disc diameter
+local DISC = 2 * (OUTER + 12) -- disc diameter (288)
+local ART = DISC + 8 -- side of the disc and wedge textures: the disc and a margin round it (make-media.ps1)
 local GOLD_R, GOLD_G, GOLD_B = 1, 0.82, 0
--- Our own soft textures (scripts/make-bgcoms-media.ps1): a line with soft edges, and a round glow.
-local SOFT_LINE = "Interface\\AddOns\\BGComs\\media\\softline"
-local GLOW = "Interface\\AddOns\\BGComs\\media\\glow"
+local MEDIA = "Interface\\AddOns\\BGComs\\media\\"
+-- White textures, tinted: a line with soft edges, a round glow, a rounded pill.
+local SOFT_LINE = MEDIA .. "softline"
+local GLOW = MEDIA .. "glow"
+local PILL = MEDIA .. "pill"
 local SOFT = 2.4 -- a soft line is drawn this much thicker than its look, its edges being transparent
-
-ns.art = {}
-
-local function hasAtlas(name)
-	if not (C_Texture and C_Texture.GetAtlasInfo) then
-		return false
-	end
-	local ok, info = pcall(C_Texture.GetAtlasInfo, name)
-	return ok and type(info) == "table"
-end
-
--- Sets an atlas at its own size times `scale`; false if this client hasn't got it.
-local function useAtlas(texture, atlas, key, scale)
-	if not hasAtlas(atlas) then
-		ns.art[key] = false
-		return false
-	end
-	texture:SetAtlas(atlas, true)
-	if scale then
-		local w, h = texture:GetSize()
-		texture:SetSize(w * scale, h * scale)
-	end
-	ns.art[key] = atlas
-	return true
-end
 
 local function polar(radius, degrees)
 	local a = degrees / DEG
@@ -92,10 +71,14 @@ local function newArc(radius, from, to, thickness, r, g, b, a)
 	return lines
 end
 
-local function setLines(lines, shown, r, g, b, a)
+-- Shows or hides lines, colouring them (and setting their look's thickness, if given) when shown.
+local function setLines(lines, shown, r, g, b, a, thickness)
 	for _, line in ipairs(lines) do
 		if shown then
 			line:SetVertexColor(r, g, b, a)
+			if thickness then
+				line:SetThickness(thickness * SOFT)
+			end
 			line:Show()
 		else
 			line:Hide()
@@ -110,87 +93,84 @@ local function newText(size, x, y, layer)
 	return text
 end
 
--- The disc. Blizzard's background, scaled so its size matches our bands.
+-- Text readable at a glance: a thick outline and a drop shadow.
+local function newShadowText(parent, size)
+	local text = parent:CreateFontString(nil, "OVERLAY")
+	text:SetDrawLayer("OVERLAY", 4)
+	text:SetFont(FONT, size, "THICKOUTLINE")
+	text:SetShadowColor(0, 0, 0, 0.9)
+	text:SetShadowOffset(2, -2)
+	return text
+end
+
+-- A dark pill behind a text of font size `size`: media/pill cut in three, so its round ends keep
+-- their shape and only the middle stretches with the text.
+local function newPill(parent, text, size, padX, padY, alpha, sublevel)
+	local height = size + 2 * padY
+	local cap = height / 2 -- each half of the square texture, at the pill's height
+	local function piece(left, right)
+		local t = parent:CreateTexture(nil, "BACKGROUND", nil, sublevel)
+		t:SetTexture(PILL) -- before the coordinates: setting a texture can reset them
+		t:SetTexCoord(left, right, 0, 1)
+		t:SetVertexColor(0, 0, 0, alpha)
+		return t
+	end
+	local leftEnd = piece(0, 0.5)
+	leftEnd:SetSize(cap, height)
+	leftEnd:SetPoint("LEFT", text, "LEFT", -padX, 0)
+	local rightEnd = piece(0.5, 1)
+	rightEnd:SetSize(cap, height)
+	rightEnd:SetPoint("RIGHT", text, "RIGHT", padX, 0)
+	local middle = piece(0.47, 0.53)
+	middle:SetPoint("TOPLEFT", leftEnd, "TOPRIGHT")
+	middle:SetPoint("BOTTOMRIGHT", rightEnd, "BOTTOMLEFT")
+end
+
+-- Layers, bottom to top: the disc (BACKGROUND), the wedge glow (BORDER), the count rings and the
+-- gold rim (ARTWORK 2), the centre's shade (4), the cancel glow (5), the pointer (6), the icons
+-- and the texts (OVERLAY).
+
+-- The disc, its rim and its six dividers fading out towards the centre.
 local disc = wheel:CreateTexture(nil, "BACKGROUND", nil, 1)
 disc:SetPoint("CENTER")
-local artScale = 1
-if hasAtlas("Radial_Wheel_BG") then
-	disc:SetAtlas("Radial_Wheel_BG", true)
-	local w = disc:GetWidth()
-	artScale = (w and w > 0) and (DISC / w) or 1
-	disc:SetSize(DISC, DISC)
-	ns.art.disc = "Radial_Wheel_BG"
-else
-	-- A dark round disc: a colour masked by Blizzard's round portrait mask (wrap modes given, no
-	-- filter: a filter mode with nil wrap modes crashes the client).
-	disc:SetSize(DISC, DISC)
-	disc:SetColorTexture(0.03, 0.03, 0.05, 0.72)
-	local mask = wheel:CreateMaskTexture()
-	mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	mask:SetAllPoints(disc)
-	disc:AddMaskTexture(mask)
-	ns.art.disc = false
-end
+disc:SetSize(ART, ART)
+disc:SetTexture(MEDIA .. "disc")
 
--- The ring with six dividers, or thin divider lines.
-local ring = wheel:CreateTexture(nil, "OVERLAY", nil, 1)
-ring:SetPoint("CENTER")
-if not useAtlas(ring, "Radial_Wheel_Frame_Count_6", "ring", artScale) then
-	ring:Hide()
-	-- Dividers fading out towards the centre, and a soft rim.
-	for _, sector in ipairs(ns.SECTORS) do
-		local x1, y1 = polar(G.dead - 6, sector.from)
-		local x2, y2 = polar(OUTER + 8, sector.from)
-		fadeIn(newLine(x1, y1, x2, y2, 1, 1, 1, 1, 0.3, 1), 1, 1, 1, 0.3)
-	end
-	newArc(OUTER + 8, 0, 360, 1.2, 1, 1, 1, 0.22)
-end
+-- The selected wedge's gold glow. The texture is drawn pointing right and centred on the wheel,
+-- so turning it about its own centre (SetRotation) turns it onto any wedge.
+local wedgeGlow = wheel:CreateTexture(nil, "BORDER", nil, 1)
+wedgeGlow:SetPoint("CENTER")
+wedgeGlow:SetSize(ART, ART)
+wedgeGlow:SetTexture(MEDIA .. "wedge")
+wedgeGlow:Hide()
 
--- The centre, blurred: a soft dark glow behind the place code, over the disc.
-local centerShade = wheel:CreateTexture(nil, "BACKGROUND", nil, 3)
+-- The centre, blurred: a soft dark glow behind the place code, over the first count ring.
+local centerShade = wheel:CreateTexture(nil, "ARTWORK", nil, 4)
 centerShade:SetPoint("CENTER")
 centerShade:SetSize(G.dead * 2 + 56, G.dead * 2 + 56)
 centerShade:SetTexture(GLOW)
 centerShade:SetVertexColor(0, 0, 0, 0.8)
 
--- The selected wedge: Blizzard's wedge glow, rotated onto it (as Blizzard_RadialWheel places it,
--- 100 out along the wedge), or a gold arc on the rim.
-local wedgeGlow = wheel:CreateTexture(nil, "ARTWORK", nil, 1)
-local hasWedgeGlow = useAtlas(wedgeGlow, "Radial_Wheel_Select_Wedge_Count_6", "wedge", artScale)
-wedgeGlow:Hide()
-
--- The pointer, rotated towards the cursor.
-local pointer = wheel:CreateTexture(nil, "OVERLAY", nil, 2)
-pointer:SetPoint("CENTER")
-local hasPointer = useAtlas(pointer, "Radial_Wheel_Select_Pointer", "pointer", artScale)
--- Without Blizzard's pointer: a soft gold line from the centre to the cursor, invisible at the
--- centre and full at the cursor.
-local pointerLine = newLine(0, 0, 1, 1, 2, GOLD_R, GOLD_G, GOLD_B, 0.9, 3)
-fadeIn(pointerLine, GOLD_R, GOLD_G, GOLD_B, 0.9)
-pointer:Hide()
-pointerLine:Hide()
-
 -- The centre while the cursor is in it (release = cancel).
-local cancelGlow = wheel:CreateTexture(nil, "ARTWORK", nil, 2)
+local cancelGlow = wheel:CreateTexture(nil, "ARTWORK", nil, 5)
 cancelGlow:SetPoint("CENTER")
-if not useAtlas(cancelGlow, "Radial_Wheel_Select_Close", "cancel", artScale) then
-	cancelGlow:SetSize(G.dead * 2 + 24, G.dead * 2 + 24)
-	cancelGlow:SetTexture(GLOW)
-	cancelGlow:SetVertexColor(1, 1, 1, 0.25)
-end
+cancelGlow:SetSize(G.dead * 2 + 24, G.dead * 2 + 24)
+cancelGlow:SetTexture(GLOW)
+cancelGlow:SetVertexColor(1, 1, 1, 0.25)
 cancelGlow:Hide()
 
--- Each call: an icon (Blizzard's ping icons where they fit), its name, and for counted calls the
--- band edges, shown while that wedge is selected.
-local ICONS = {
-	inc = { atlas = "Ping_Wheel_Icon_Warning", file = "Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew" },
-	spotted = { atlas = "Ping_Wheel_Icon_Attack", file = "Interface\\Icons\\Ability_EyeOfTheOwl", trim = true },
-	help = { atlas = "Ping_Wheel_Icon_Assist", file = "Interface\\Icons\\Spell_Holy_SealOfProtection", trim = true },
-	omw = { atlas = "Ping_Wheel_Icon_OnMyWay", file = "Interface\\Icons\\Ability_Rogue_Sprint", trim = true },
-	clear = { file = "Interface\\RaidFrame\\ReadyCheck-Ready" },
-	efc = { flag = true },
-}
-local ICON_SIZE = 34
+-- The pointer: a soft gold line from the centre, where it is invisible, to the cursor.
+local pointerLine = newLine(0, 0, 1, 1, 3.5, GOLD_R, GOLD_G, GOLD_B, 0.92, 6)
+fadeIn(pointerLine, GOLD_R, GOLD_G, GOLD_B, 0.92)
+pointerLine:Hide()
+
+-- Each call: its icon (EFC's is the enemy's flag, set on opening), its name, the gold rim of its
+-- wedge, and for counted calls the count rings, shown while that wedge is selected.
+-- An icon texture spans 1.5 times the drawing's size (34), its edges being transparent.
+local ICON = 34 * 1.5
+local ICON_FILES = { inc = "icon-inc", spotted = "icon-spotted", help = "icon-help", omw = "icon-omw", clear = "icon-clear" }
+-- From an icon's centre to its name: above or below it, or beside it.
+local LABEL_GAP_Y, LABEL_GAP_X = 26, 30
 
 local parts = {}
 for _, sector in ipairs(ns.SECTORS) do
@@ -201,64 +181,58 @@ for _, sector in ipairs(ns.SECTORS) do
 	local ix, iy = polar(G.iconRadius, mid)
 	part.icon = wheel:CreateTexture(nil, "OVERLAY", nil, 3)
 	part.icon:SetPoint("CENTER", wheel, "CENTER", ix, iy)
-	local spec = ICONS[sector.kind] or {}
-	if spec.atlas and useAtlas(part.icon, spec.atlas, "icon_" .. sector.kind) then
-		local w, h = part.icon:GetSize()
-		local fit = math.min(1, (ICON_SIZE + 10) / math.max(w, h, 1))
-		part.icon:SetSize(w * fit, h * fit)
-	elseif spec.file then
-		part.icon:SetTexture(spec.file)
-		part.icon:SetSize(ICON_SIZE, ICON_SIZE)
-		if spec.trim then
-			part.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-		end
-	else
-		part.icon:SetSize(ICON_SIZE, ICON_SIZE)
+	part.icon:SetSize(ICON, ICON)
+	if ICON_FILES[sector.kind] then
+		part.icon:SetTexture(MEDIA .. ICON_FILES[sector.kind])
 	end
-	part.flag = spec.flag
-	part.baseW, part.baseH = part.icon:GetSize()
+	part.flag = (sector.kind == "efc")
 
-	-- The name on the outer side of the icon (Blizzard_RadialWheel's rule).
-	part.label = wheel:CreateFontString(nil, "OVERLAY")
-	part.label:SetFont(FONT, 12, "OUTLINE")
+	-- The name on the outer side of the icon, at a set distance from its centre, so it stays put
+	-- when the selected icon grows.
+	part.label = newShadowText(wheel, 15)
 	part.label:SetText(sector.label)
+	-- A soft dark patch under the name: half of it lies over the map, past the disc.
+	local shade = wheel:CreateTexture(nil, "ARTWORK", nil, 3)
+	shade:SetTexture(GLOW)
+	shade:SetVertexColor(0, 0, 0, 0.6)
+	shade:SetPoint("TOPLEFT", part.label, "TOPLEFT", -14, 9)
+	shade:SetPoint("BOTTOMRIGHT", part.label, "BOTTOMRIGHT", 14, -9)
 	local a = mid / DEG
 	local q = math.pi / 4
 	if a > q and a <= math.pi - q then
-		part.label:SetPoint("BOTTOM", part.icon, "TOP", 0, 2)
+		part.label:SetPoint("BOTTOM", wheel, "CENTER", ix, iy + LABEL_GAP_Y)
 	elseif a > math.pi - q and a <= math.pi + q then
-		part.label:SetPoint("RIGHT", part.icon, "LEFT", -2, 0)
+		part.label:SetPoint("RIGHT", wheel, "CENTER", ix - LABEL_GAP_X, iy)
 	elseif a > math.pi + q and a <= 2 * math.pi - q then
-		part.label:SetPoint("TOP", part.icon, "BOTTOM", 0, -2)
+		part.label:SetPoint("TOP", wheel, "CENTER", ix, iy - LABEL_GAP_Y)
 	else
-		part.label:SetPoint("LEFT", part.icon, "RIGHT", 2, 0)
+		part.label:SetPoint("LEFT", wheel, "CENTER", ix + LABEL_GAP_X, iy)
 	end
 
-	if not hasWedgeGlow then
-		part.rim = newArc(OUTER + 8, sector.from + 1, sector.to - 1, 3, GOLD_R, GOLD_G, GOLD_B, 0.9)
-		setLines(part.rim, false)
-	end
+	part.rim = newArc(DISC / 2 - 3, sector.from + 1, sector.to - 1, 4, GOLD_R, GOLD_G, GOLD_B, 1)
+	setLines(part.rim, false)
 	if sector.counted then
 		part.bands = {}
 		for band = 1, G.maxCount do
-			part.bands[band] = newArc(G.dead + G.band * band, sector.from + 2, sector.to - 2, 1, 1, 1, 1, 0.3)
+			part.bands[band] = newArc(G.dead + G.band * band, sector.from + 2, sector.to - 2, 1.5, 1, 1, 1, 0.27)
 			setLines(part.bands[band], false)
 		end
 	end
 end
 
-local locText = newText(17, 0, 3)
-local countText = newText(14, 0, -12)
-countText:SetTextColor(GOLD_R, GOLD_G, GOLD_B, 1)
+local locText = newShadowText(wheel, 22)
+locText:SetPoint("CENTER", wheel, "CENTER", 0, 5)
+local countText = newShadowText(wheel, 16)
+countText:SetPoint("CENTER", wheel, "CENTER", 0, -17)
+countText:SetTextColor(GOLD_R, GOLD_G, GOLD_B)
 
 -- The message that the release sends, on a dark pill under the disc.
-local pill = wheel:CreateTexture(nil, "BACKGROUND", nil, 2)
-pill:SetColorTexture(0, 0, 0, 0.65)
-local preview = newText(15, 0, -(DISC / 2 + 16))
-pill:SetPoint("TOPLEFT", preview, "TOPLEFT", -8, 4)
-pill:SetPoint("BOTTOMRIGHT", preview, "BOTTOMRIGHT", 8, -4)
+local PREVIEW_SIZE = 18
+local preview = newShadowText(wheel, PREVIEW_SIZE)
+preview:SetPoint("CENTER", wheel, "CENTER", 0, -(DISC / 2 + 25))
+newPill(wheel, preview, PREVIEW_SIZE, 14, 6, 0.69, 2)
 
-local movedText = newText(10, 0, -(DISC / 2 + 36))
+local movedText = newText(10, 0, -(DISC / 2 + 52))
 movedText:SetTextColor(1, 0.5, 0, 1)
 movedText:SetText("map zoomed or moved in combat: the place may be off (release in the centre to cancel)")
 
@@ -286,35 +260,36 @@ local function paint(sector, band, disabled)
 		local enabled = text and text ~= ""
 		local selected = (s == sector)
 		if selected then
-			part.label:SetTextColor(GOLD_R, GOLD_G, GOLD_B, 1)
-			part.icon:SetSize(part.baseW * 1.15, part.baseH * 1.15)
+			part.label:SetTextColor(GOLD_R, GOLD_G, GOLD_B)
+			part.icon:SetSize(ICON * 1.15, ICON * 1.15)
 		else
-			part.label:SetTextColor(1, 1, 1, enabled and 0.85 or 0.3)
-			part.icon:SetSize(part.baseW, part.baseH)
+			local v = enabled and 0.92 or 0.45
+			part.label:SetTextColor(v, v, v)
+			part.icon:SetSize(ICON, ICON)
 		end
 		part.icon:SetDesaturated(not enabled)
 		part.icon:SetAlpha(enabled and (selected and 1 or 0.8) or 0.3)
-		if part.rim then
-			setLines(part.rim, selected, GOLD_R, GOLD_G, GOLD_B, 0.9)
-		end
+		setLines(part.rim, selected, GOLD_R, GOLD_G, GOLD_B, 1)
 		if part.bands then
+			-- The ring of the current count in gold and thicker, the others faint.
 			for b, arc in ipairs(part.bands) do
-				local current = selected and b == math.min(band or 0, G.maxCount)
-				setLines(arc, selected, current and GOLD_R or 1, current and GOLD_G or 1, current and GOLD_B or 1, current and 0.9 or 0.25)
+				if selected and b == math.min(band or 0, G.maxCount) then
+					setLines(arc, true, GOLD_R, GOLD_G, GOLD_B, 1, 3)
+				else
+					setLines(arc, selected, 1, 1, 1, 0.27, 1.5)
+				end
 			end
 		end
 	end
-	if hasWedgeGlow and sector then
-		local a = ((sector.from + sector.to) / 2) / DEG
-		wedgeGlow:ClearAllPoints()
-		wedgeGlow:SetPoint("CENTER", wheel, "CENTER", math.cos(a) * 100 * artScale, math.sin(a) * 100 * artScale)
-		wedgeGlow:SetRotation(a)
+	if sector then
+		wedgeGlow:SetRotation(parts[sector].mid / DEG)
 		wedgeGlow:Show()
 	else
 		wedgeGlow:Hide()
 	end
 	cancelGlow:SetShown(not sector and not disabled)
-	locText:SetAlpha(sector and 1 or 0.55)
+	local v = sector and 1 or 0.6
+	locText:SetTextColor(v, v, v)
 end
 
 local function track()
@@ -352,16 +327,10 @@ local function track()
 
 	if dx * dx + dy * dy >= G.dead * G.dead then
 		local angle = math.atan2(dy, dx)
-		if hasPointer then
-			pointer:SetRotation(angle)
-			pointer:Show()
-		else
-			local reach = math.min(math.sqrt(dx * dx + dy * dy), OUTER + 8)
-			pointerLine:SetEndPoint("CENTER", wheel, reach * math.cos(angle), reach * math.sin(angle))
-			pointerLine:Show()
-		end
+		local reach = math.min(math.sqrt(dx * dx + dy * dy), OUTER + 8)
+		pointerLine:SetEndPoint("CENTER", wheel, reach * math.cos(angle), reach * math.sin(angle))
+		pointerLine:Show()
 	else
-		pointer:Hide()
 		pointerLine:Hide()
 	end
 
@@ -391,17 +360,13 @@ wheel:SetScript("OnUpdate", function()
 	ns.PerfEnd(t0, kb0, "wheel")
 end)
 
+-- EFC's icon: the enemy's flag, blue for a Horde player, red otherwise.
 local function setFlagIcon()
+	local file = (UnitFactionGroup("player") == "Horde") and "flag-blue" or "flag-red"
 	for _, part in pairs(parts) do
-		if part.flag then
-			local faction = UnitFactionGroup("player")
-			local enemy = (faction == "Horde") and "AllianceFlag" or "HordeFlag"
-			if part.flagName ~= enemy then
-				part.flagName = enemy
-				part.icon:SetTexture("Interface\\WorldStateFrame\\" .. enemy)
-				part.icon:SetSize(ICON_SIZE, ICON_SIZE)
-				part.baseW, part.baseH = ICON_SIZE, ICON_SIZE
-			end
+		if part.flag and part.flagFile ~= file then
+			part.flagFile = file
+			part.icon:SetTexture(MEDIA .. file)
 		end
 	end
 end
@@ -447,13 +412,9 @@ flash:SetFrameStrata("TOOLTIP")
 flash:SetSize(10, 10)
 flash:EnableMouse(false)
 flash:Hide()
-local flashText = flash:CreateFontString(nil, "OVERLAY")
-flashText:SetFont(FONT, 16, "OUTLINE")
+local flashText = newShadowText(flash, 18)
 flashText:SetPoint("CENTER")
-local flashPill = flash:CreateTexture(nil, "BACKGROUND")
-flashPill:SetColorTexture(0, 0, 0, 0.6)
-flashPill:SetPoint("TOPLEFT", flashText, "TOPLEFT", -10, 5)
-flashPill:SetPoint("BOTTOMRIGHT", flashText, "BOTTOMRIGHT", 10, -5)
+newPill(flash, flashText, 18, 14, 6, 0.6, 0)
 local flashLeft = 0
 local FLASH_TIME = 1.4
 
@@ -468,7 +429,7 @@ end)
 
 function Wheel.Flash(text, r, g, b)
 	flashText:SetText(text or "")
-	flashText:SetTextColor(r or 1, g or 1, b or 1, 1)
+	flashText:SetTextColor(r or 1, g or 1, b or 1)
 	flash:ClearAllPoints()
 	flash:SetPoint("CENTER", UIParent, "BOTTOMLEFT", centerX, centerY)
 	flashLeft = FLASH_TIME
@@ -694,8 +655,6 @@ end)
 
 ns.AddDebugPart("visuals", function()
 	return {
-		art = ns.art,
-		artScale = artScale,
 		fakeArtMapID = artMapID,
 		fakeArtLayer = artLayer,
 		tiles = #tiles,

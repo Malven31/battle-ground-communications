@@ -11,12 +11,15 @@ To show one in the description or the README, commit it here and load it in the 
 | File | What it shows | Title | Description |
 |---|---|---|---|
 | `bgcoms_1.gif` | In the game, Arathi Basin's battlefield map: a middle-click on BS opens the wheel, a drag three rings out towards SPOTTED (x3), the release sends "3 spotted BS" (367×253, 60 frames, 4.2 s, 3.2 MB) | One gesture | Middle-click a base, drag towards a call: further means more enemies. Release, and it is in battleground chat. |
+| `options.png` | The options page (`/bgc`), in the game: the click, the battlefield map settings, the six messages, the test and check buttons (710×643). The game's "Capture d'écran sauvegardée" (screenshot saved) message shows over its middle | Options | Choose the click, write your own messages, and try it all outside battlegrounds. |
 
-`description.md` and the repository's README show it, loaded from this folder. Checked frame by frame (2026-11-22): only the map, the wheel, the game's base tooltip and the callout. No chat window, no player frame, no readable name.
+`description.md` and the repository's README show the GIF, loaded from this folder. Checked frame by frame (2026-11-22): only the map, the wheel, the game's base tooltip and the callout. No chat window, no player frame, no readable name. `options.png` (2026-11-22, committed 2026-11-23) shows only the options page: no name.
 
 ## Illustrations in this folder
 
-Drawn by `scripts/make-gallery.ps1` (1280×720) on the real Arathi Basin map art, with the addon's own layout: the same directions, count rings, place codes and messages. They are illustrations, not game captures: in the game, the wheel uses Blizzard's ping art. No character names (the sender is "You"). Replace them with real screenshots when there are some.
+Drawn by `scripts/make-gallery.ps1` (1280×720) on the real Arathi Basin map art, with the addon's own layout: the same directions, count rings, place codes and messages. The wheel's disc, glow and icons come from `scripts/wheel-art.ps1`, the drawing the addon's textures are made from (since 1.0.1), so they look as in the game. Only the font differs: the game uses its own. They are still illustrations, not game captures. No character names (the sender is "You"). Replace them with real screenshots when there are some.
+
+`bgcoms_1.gif` was recorded with 1.0.0, whose wheel used Blizzard's ping icons (a sword, a green flag, a blue arrow). From 1.0.1 the wheel looks like the illustrations: record it again then.
 
 | File | What it shows | Title | Description |
 |---|---|---|---|
@@ -36,6 +39,5 @@ Drawn by `scripts/make-gallery.ps1` (1280×720) on the real Arathi Basin map art
 | `01-wheel.jpg` | The wheel open over the battlefield map, a call selected | One gesture | Middle-click a base, drag towards a call, release. |
 | `02-chat.jpg` | A few callouts in the chat window (`/bgc test ab say`) | Everyone reads it | Plain text in battleground chat. |
 | `03-map.jpg` | The battlefield map in a battleground with the place codes | Your bases, named | The codes the callouts use. |
-| `04-options.jpg` | The options page (`/bgc`) | Options | The click, your messages, the map. |
 
 Rename or drop shots freely.

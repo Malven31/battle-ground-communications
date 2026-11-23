@@ -82,4 +82,4 @@ A tag containing `beta` or `alpha` (for example `1.1.0-beta1`) becomes a beta or
 
 To build a zip locally instead, run `powershell -File scripts/package.ps1`. It writes `dist/BGComs-<version>.zip`, with `BGComs` at the root of the archive and the licence inside it, like the workflow's zip.
 
-Pictures: `scripts/make-icon.ps1` draws the icon (`-Out curseforge/logo.png -Size 512` and `-Out BGComs/media/icon.tga -Size 64`), `scripts/make-media.ps1` the wheel's soft line and glow textures, and `scripts/make-gallery.ps1` the gallery illustrations.
+Pictures: `scripts/make-icon.ps1` draws the icon (`-Out curseforge/logo.png -Size 512` and `-Out BGComs/media/icon.tga -Size 64`), `scripts/make-media.ps1` the wheel's textures in `BGComs/media/` (disc, wedge glow, call icons, soft line, glow, pill), and `scripts/make-gallery.ps1` the gallery illustrations. The wheel and its icons are drawn once, in `scripts/wheel-art.ps1`, which both of the last two use, so the gallery shows what the game draws.

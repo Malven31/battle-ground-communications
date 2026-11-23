@@ -116,7 +116,11 @@ jobs:
             echo "::error::The zip's root holds \"$roots\" instead of exactly BGComs."
             exit 1
           fi
-          for file in BGComs/BGComs.toc BGComs/Core.lua BGComs/Data.lua BGComs/Wheel.lua BGComs/Secure.lua BGComs/Options.lua BGComs/media/icon.tga BGComs/media/softline.tga BGComs/media/glow.tga BGComs/LICENSE; do
+          for file in BGComs/BGComs.toc BGComs/Core.lua BGComs/Data.lua BGComs/Wheel.lua BGComs/Secure.lua BGComs/Options.lua \
+              BGComs/media/icon.tga BGComs/media/softline.tga BGComs/media/glow.tga BGComs/media/pill.tga \
+              BGComs/media/disc.tga BGComs/media/wedge.tga BGComs/media/icon-inc.tga BGComs/media/icon-spotted.tga \
+              BGComs/media/icon-help.tga BGComs/media/icon-omw.tga BGComs/media/icon-clear.tga \
+              BGComs/media/flag-red.tga BGComs/media/flag-blue.tga BGComs/LICENSE; do
             if ! grep -qx "$file" "$listing"; then
               echo "::error::$file is missing from the zip."
               exit 1

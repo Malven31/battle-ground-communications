@@ -6,51 +6,20 @@
 #
 #   powershell -File scripts/make-gallery.ps1 -MapImage <Arathi Basin map art, 1002x668 PNG>
 #
-# These are drawn illustrations of the addon's layout (same directions, rings, codes and texts as the
-# code), not game captures: in-game the wheel uses Blizzard's ping art. Replace them with real
-# screenshots when there are some. No character names: the sender is "You".
+# These are drawn illustrations, not game captures. The wheel's disc, wedge glow and icons come from
+# wheel-art.ps1, the same drawing make-media.ps1 turns into the addon's textures, so they look as in
+# the game; the texts use Segoe UI, not the game's font. Replace them with real screenshots when
+# there are some. No character names: the sender is "You".
 param(
     # Arathi Basin's map art (map 1461), 1002x668, exported from the game files (wow.export: zone 3358).
     [Parameter(Mandatory)][string]$MapImage,
     [string]$OutDir = (Join-Path $PSScriptRoot '..\curseforge\gallery')
 )
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Drawing
-$C = [System.Drawing.Color]
+. (Join-Path $PSScriptRoot 'wheel-art.ps1')
 if (-not (Test-Path -LiteralPath $OutDir)) { New-Item -ItemType Directory -Force $OutDir | Out-Null }
 
 $W, $H = 1280, 720
-$GOLD = $C::FromArgb(255, 255, 209, 0)
-$FAMILY = New-Object System.Drawing.FontFamily 'Segoe UI'
-$BOLD = [System.Drawing.FontStyle]::Bold
-
-function Hex([string]$hex, [int]$alpha = 255) {
-    $v = [Convert]::ToInt32($hex.TrimStart('#'), 16)
-    return $C::FromArgb($alpha, ($v -shr 16) -band 255, ($v -shr 8) -band 255, $v -band 255)
-}
-function Pt([double]$x, [double]$y) { New-Object System.Drawing.PointF ([single]$x), ([single]$y) }
-function RectF([double]$x, [double]$y, [double]$w, [double]$h) { New-Object System.Drawing.RectangleF ([single]$x), ([single]$y), ([single]$w), ([single]$h) }
-function Solid([System.Drawing.Color]$color) { New-Object System.Drawing.SolidBrush $color }
-function RoundedRect([double]$x, [double]$y, [double]$w, [double]$h, [double]$r) {
-    $d = $r * 2
-    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $p.AddArc((RectF $x $y $d $d), 180, 90)
-    $p.AddArc((RectF ($x + $w - $d) $y $d $d), 270, 90)
-    $p.AddArc((RectF ($x + $w - $d) ($y + $h - $d) $d $d), 0, 90)
-    $p.AddArc((RectF $x ($y + $h - $d) $d $d), 90, 90)
-    $p.CloseFigure()
-    return $p
-}
-function Circle([double]$cx, [double]$cy, [double]$r) {
-    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $p.AddEllipse((RectF ($cx - $r) ($cy - $r) ($r * 2) ($r * 2)))
-    return $p
-}
-# Screen angle: 0 = right, counter-clockwise (as in the addon), y down on the image.
-function Polar([double]$cx, [double]$cy, [double]$r, [double]$deg) {
-    $a = $deg * [Math]::PI / 180
-    return @(($cx + $r * [Math]::Cos($a)), ($cy - $r * [Math]::Sin($a)))
-}
 
 function New-Canvas {
     $bmp = New-Object System.Drawing.Bitmap $W, $H, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -62,22 +31,6 @@ function New-Canvas {
     $bg = New-Object System.Drawing.Drawing2D.LinearGradientBrush (RectF 0 0 $W $H), (Hex '161b26'), (Hex '0a0c11'), ([single]90)
     $g.FillRectangle($bg, 0, 0, $W, $H)
     return @($bmp, $g)
-}
-
-# Text drawn as a path: an outline, then the fill. $align: 'left' or 'center' (x is the centre).
-function Text($g, [string]$text, [double]$size, [System.Drawing.Color]$color, [double]$x, [double]$y, [string]$align = 'left', [double]$outline = 3, [System.Drawing.FontStyle]$style = $BOLD) {
-    $format = New-Object System.Drawing.StringFormat
-    if ($align -eq 'center') { $format.Alignment = [System.Drawing.StringAlignment]::Center }
-    $format.LineAlignment = [System.Drawing.StringAlignment]::Center
-    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $path.AddString($text, $FAMILY, [int]$style, [single]$size, (Pt $x $y), $format)
-    if ($outline -gt 0) {
-        $pen = New-Object System.Drawing.Pen ((Hex '000000' 220)), ([single]$outline)
-        $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-        $g.DrawPath($pen, $path)
-    }
-    $g.FillPath((Solid $color), $path)
-    return $path.GetBounds()
 }
 
 function Caption($g, [string]$title, [string]$sub) {
@@ -115,119 +68,35 @@ function Map($g, [double]$x, [double]$y, [double]$w, [double]$h, [switch]$Labels
     }
 }
 
-# --- The wheel's icons, drawn simply (in-game they are Blizzard's ping icons). ---
-function Icon($g, [string]$kind, [double]$x, [double]$y, [double]$s, [bool]$selected) {
-    $alpha = if ($selected) { 255 } else { 215 }
-    switch ($kind) {
-        'inc' {
-            $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $p.AddPolygon([System.Drawing.PointF[]]@((Pt $x ($y - $s * 0.55)), (Pt ($x + $s * 0.6) ($y + $s * 0.45)), (Pt ($x - $s * 0.6) ($y + $s * 0.45))))
-            $g.FillPath((Solid (Hex 'f2b33d' $alpha)), $p)
-            $g.DrawPath((New-Object System.Drawing.Pen ((Hex '000000' 180)), ([single]2)), $p)
-            Text $g '!' ($s * 0.62) (Hex '1a1206') $x ($y + $s * 0.08) 'center' 0 | Out-Null
-        }
-        'spotted' {
-            $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $p.AddBezier((Pt ($x - $s * 0.6) $y), (Pt ($x - $s * 0.25) ($y - $s * 0.45)), (Pt ($x + $s * 0.25) ($y - $s * 0.45)), (Pt ($x + $s * 0.6) $y))
-            $p.AddBezier((Pt ($x + $s * 0.6) $y), (Pt ($x + $s * 0.25) ($y + $s * 0.45)), (Pt ($x - $s * 0.25) ($y + $s * 0.45)), (Pt ($x - $s * 0.6) $y))
-            $g.FillPath((Solid (Hex 'e8eefc' $alpha)), $p)
-            $g.FillPath((Solid (Hex 'd63a3a' $alpha)), (Circle $x $y ($s * 0.22)))
-            $g.FillPath((Solid (Hex '111111' $alpha)), (Circle $x $y ($s * 0.1)))
-        }
-        'help' {
-            $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $p.AddLine((Pt ($x - $s * 0.45) ($y - $s * 0.5)), (Pt ($x + $s * 0.45) ($y - $s * 0.5)))
-            $p.AddBezier((Pt ($x + $s * 0.45) ($y - $s * 0.5)), (Pt ($x + $s * 0.45) ($y + $s * 0.15)), (Pt ($x + $s * 0.2) ($y + $s * 0.4)), (Pt $x ($y + $s * 0.58)))
-            $p.AddBezier((Pt $x ($y + $s * 0.58)), (Pt ($x - $s * 0.2) ($y + $s * 0.4)), (Pt ($x - $s * 0.45) ($y + $s * 0.15)), (Pt ($x - $s * 0.45) ($y - $s * 0.5)))
-            $g.FillPath((Solid (Hex '4f86f0' $alpha)), $p)
-            $g.DrawPath((New-Object System.Drawing.Pen ((Hex 'e6edfc' $alpha)), ([single]2.5)), $p)
-            $g.FillRectangle((Solid (Hex 'ffffff' $alpha)), (RectF ($x - $s * 0.07) ($y - $s * 0.3) ($s * 0.14) ($s * 0.6)))
-            $g.FillRectangle((Solid (Hex 'ffffff' $alpha)), (RectF ($x - $s * 0.25) ($y - $s * 0.07) ($s * 0.5) ($s * 0.14)))
-        }
-        'omw' {
-            foreach ($o in @(-0.22, 0.18)) {
-                $pen = New-Object System.Drawing.Pen ((Hex '7fd86a' $alpha)), ([single]($s * 0.16))
-                $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round; $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-                $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-                $g.DrawLines($pen, [System.Drawing.PointF[]]@((Pt ($x + ($o - 0.18) * $s) ($y - $s * 0.38)), (Pt ($x + ($o + 0.18) * $s) $y), (Pt ($x + ($o - 0.18) * $s) ($y + $s * 0.38))))
-            }
-        }
-        'clear' {
-            $pen = New-Object System.Drawing.Pen ((Hex '5fdc5a' $alpha)), ([single]($s * 0.2))
-            $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round; $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-            $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-            $g.DrawLines($pen, [System.Drawing.PointF[]]@((Pt ($x - $s * 0.42) $y), (Pt ($x - $s * 0.1) ($y + $s * 0.32)), (Pt ($x + $s * 0.45) ($y - $s * 0.38))))
-        }
-        'efc' {
-            $g.FillRectangle((Solid (Hex 'c98a4b' $alpha)), (RectF ($x - $s * 0.36) ($y - $s * 0.55) ($s * 0.08) ($s * 1.1)))
-            $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $p.AddPolygon([System.Drawing.PointF[]]@((Pt ($x - $s * 0.28) ($y - $s * 0.5)), (Pt ($x + $s * 0.5) ($y - $s * 0.32)), (Pt ($x + $s * 0.2) ($y - $s * 0.12)), (Pt ($x + $s * 0.5) ($y + $s * 0.08)), (Pt ($x - $s * 0.28) ($y + $s * 0.05))))
-            $g.FillPath((Solid (Hex 'd63a3a' $alpha)), $p)
-        }
-    }
-}
-
-# The six calls, as in Data.lua's SECTORS: name, from, to, counted.
-$SECTORS = @(
-    @('spotted', 'SPOTTED', 0, 60, $true),
-    @('inc', 'INC', 60, 120, $true),
-    @('help', 'HELP', 120, 180, $false),
-    @('omw', 'OMW', 180, 240, $false),
-    @('clear', 'CLEAR', 240, 300, $false),
-    @('efc', 'EFC', 300, 360, $false)
-)
-$DEAD, $BAND, $MAXCOUNT = 22, 22, 5
-$OUTER = $DEAD + $BAND * $MAXCOUNT
-$DISC = $OUTER + 12
-
-# The wheel at (cx, cy): $selected is a sector name or $null, $level the count band (1..6).
+# The wheel at (cx, cy), as Wheel.lua lays it out: $selected is a call or $null, $level the count
+# ring (1..6), $k the scale.
 function Wheel($g, [double]$cx, [double]$cy, $selected, [int]$level, [string]$loc, [string]$message, [double]$k = 1.0, [switch]$Cursor) {
     $discR = $DISC * $k
-    # The dark disc, a soft rim.
-    $disc = Circle $cx $cy $discR
-    $brush = New-Object System.Drawing.Drawing2D.PathGradientBrush $disc
-    $brush.CenterColor = Hex '0c0f16' 235
-    $brush.SurroundColors = @((Hex '1a2131' 225))
-    $g.FillPath($brush, $disc)
-    $g.DrawPath((New-Object System.Drawing.Pen ((Hex 'ffffff' 55)), ([single]2)), $disc)
+    Draw-Disc $g $cx $cy $k
 
-    # The selected wedge: a gold glow from the centre out, its rim brighter.
+    # The selected wedge: its gold glow, a gold rim, and for counted calls the count rings, the
+    # current one in gold.
     foreach ($s in $SECTORS) {
         if ($s[0] -ne $selected) { continue }
-        $wedge = New-Object System.Drawing.Drawing2D.GraphicsPath
-        $wedge.AddPie([single]($cx - $discR), [single]($cy - $discR), [single]($discR * 2), [single]($discR * 2), [single](-$s[3]), [single]($s[3] - $s[2]))
-        $glow = New-Object System.Drawing.Drawing2D.PathGradientBrush $wedge
-        $glow.CenterPoint = Pt $cx $cy
-        $glow.CenterColor = Hex 'ffd100' 10
-        $glow.SurroundColors = @((Hex 'ffd100' 75))
-        $g.FillPath($glow, $wedge)
+        Draw-Wedge $g $cx $cy $k $s[2] $s[3]
         $rim = New-Object System.Drawing.Pen ($GOLD), ([single](4 * $k))
-        $g.DrawArc($rim, (RectF ($cx - $discR + 3) ($cy - $discR + 3) (($discR - 3) * 2) (($discR - 3) * 2)), [single](-$s[3] + 1), [single]($s[3] - $s[2] - 2))
+        $g.DrawArc($rim, (RectF ($cx - $discR + 3 * $k) ($cy - $discR + 3 * $k) (($discR - 3 * $k) * 2) (($discR - 3 * $k) * 2)), [single](-$s[3] + 1), [single]($s[3] - $s[2] - 2))
         if ($s[4]) {
-            # The count rings of this wedge, the current one in gold.
             for ($b = 1; $b -le $MAXCOUNT; $b++) {
                 $r = ($DEAD + $BAND * $b) * $k
                 $current = ($b -eq [Math]::Min($level, $MAXCOUNT))
-                $pen = New-Object System.Drawing.Pen ($(if ($current) { $GOLD } else { Hex 'ffffff' 70 })), ([single]$(if ($current) { 3 } else { 1.5 }))
+                $pen = New-Object System.Drawing.Pen ($(if ($current) { $GOLD } else { Hex 'ffffff' 70 })), ([single]($(if ($current) { 3 } else { 1.5 }) * $k))
                 $g.DrawArc($pen, (RectF ($cx - $r) ($cy - $r) ($r * 2) ($r * 2)), [single](-$s[3] + 2), [single]($s[3] - $s[2] - 4))
             }
         }
     }
 
-    # Dividers, fading out towards the centre.
-    foreach ($s in $SECTORS) {
-        $a = Polar $cx $cy (($DEAD - 4) * $k) $s[2]
-        $b = Polar $cx $cy ($discR - 4) $s[2]
-        $lb = New-Object System.Drawing.Drawing2D.LinearGradientBrush (Pt $a[0] $a[1]), (Pt $b[0] $b[1]), (Hex 'ffffff' 0), (Hex 'ffffff' 90)
-        $g.DrawLine((New-Object System.Drawing.Pen $lb, ([single]2)), (Pt $a[0] $a[1]), (Pt $b[0] $b[1]))
-    }
-
-    # Icons and names.
+    # Icons and names: the selected icon 1.15 times larger and opaque, the others at 80%.
     foreach ($s in $SECTORS) {
         $mid = ($s[2] + $s[3]) / 2
-        $p = Polar $cx $cy (84 * $k) $mid
+        $p = Polar $cx $cy ($ICON_RADIUS * $k) $mid
         $isSel = ($s[0] -eq $selected)
-        Icon $g $s[0] $p[0] $p[1] ($(if ($isSel) { 40 } else { 34 }) * $k) $isSel
+        Draw-CallIcon $g $s[0] $p[0] $p[1] ($ICON_SIZE * $(if ($isSel) { 1.15 } else { 1 }) * $k) $(if ($isSel) { 255 } else { 204 })
         $color = if ($isSel) { $GOLD } else { Hex 'ffffff' 220 }
         $q = 45
         if ($mid -gt $q -and $mid -le 180 - $q) { Text $g $s[1] (15 * $k) $color $p[0] ($p[1] - 34 * $k) 'center' 3 | Out-Null }

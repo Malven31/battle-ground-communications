@@ -9,6 +9,7 @@ On the battlefield map (Shift-M), press the middle mouse button near a place and
 - **EFC** only exists in battlegrounds with a flag (Warsong Gulch, Darkspear Islands).
 - **Releasing in the centre cancels**, and so does a release far from the wheel.
 - The wheel shows the message the release will send, under it.
+- Each call has its own icon: a warning sign for INC, an eye for SPOTTED, a shield for HELP, arrows for OMW, a tick for CLEAR, and the enemy's flag for EFC (red against the Horde, blue against the Alliance). The call under the cursor lights up in gold.
 
 The message goes out in battleground chat as plain text, sent as you, so everyone reads it, with or without the addon. During a match the game doesn't let addons send chat on their own, so the click runs a secure macro, chosen by a secure snippet from the click and the drag. That works in combat.
 
